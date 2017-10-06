@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Net.Sockets;
+using System.Text;
 
-namespace TcpProxy
+namespace MinerProxy.Network
 {
     internal sealed class Session : IDisposable
     {
@@ -20,6 +21,9 @@ namespace TcpProxy
 
         public Action<byte[],int> OnDataReceived { get; set; }
         public Action OnDisconnected { get; set; }
+
+        public string ip;
+        public string port;
 
         public Session(Socket socket)
         {
@@ -55,7 +59,14 @@ namespace TcpProxy
             }
 
             if (OnDataReceived != null)
-                OnDataReceived(m_buffer,size);
+            {
+                var lines = Encoding.UTF8.GetString(m_buffer, 0, size).Split('\n');
+                for (int index = 0; index < lines.Length; ++index)
+                {
+                    if (lines[index].Length > 0)
+                        OnDataReceived(Encoding.UTF8.GetBytes(lines[index] + '\n'), lines[index].Length + 1);
+                }
+            }
 
             Receive();
         }
@@ -88,10 +99,16 @@ namespace TcpProxy
             {
                 m_disposed = true;
 
-                m_socket.Shutdown(SocketShutdown.Both);
-                m_socket.Close();
+                try
+                {
+                    m_socket.Shutdown(SocketShutdown.Both);
+                    BufferPool.Put(m_buffer);
+                }
+                finally
+                {
+                    m_socket.Close();
+                }
 
-                BufferPool.Put(m_buffer);
 
                 if (OnDisconnected != null)
                     OnDisconnected();

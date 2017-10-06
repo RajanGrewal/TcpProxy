@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
 
-namespace TcpProxy
+namespace MinerProxy.Network
 {
     internal sealed class BufferPool
     {
-        public const int BufferSize = 1024;
+        public const int BufferSize = 10240;
         private static ConcurrentBag<byte[]> objectPool = new ConcurrentBag<byte[]>();
 
         public static byte[] Get()
